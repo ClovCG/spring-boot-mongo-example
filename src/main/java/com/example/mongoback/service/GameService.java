@@ -1,40 +1,20 @@
 package com.example.mongoback.service;
 
 import java.util.List;
-import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
+import com.example.mongoback.dto.GameDTO;
 import com.example.mongoback.model.Game;
-import com.example.mongoback.repository.GameRepository;
 
-@Service
-public class GameService {
+public interface GameService {
 
-    @Autowired
-    private GameRepository gameRepository;
+    public List<GameDTO> getAllGames();
 
-    // GET methods
-    public List<Game> getAllGames() {
-        return gameRepository.findAll();
-    }
+    public GameDTO getGameById(String id);
 
-    public Optional<Game> getGameById(String id) {
-        return gameRepository.findById(id);
-    }
+    public List<GameDTO> getGamesByTitle(String title);
 
-    public List<Game> getGamesbyTitle(String title) {
-        return gameRepository.findByTitleContains(title);
-    }
+    public Game saveGame(GameDTO game);
 
-    // POST/UPDATE methods
-    public Game saveGame(Game game) {
-        return gameRepository.save(game);
-    }
+    public void deleteGame(GameDTO game);
 
-    // DELETE methods
-    public void deleteGame(Game game) {
-        gameRepository.delete(game);
-    }
 }

@@ -7,7 +7,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.example.mongoback.service.GameService;
+import com.example.mongoback.service.GameServiceImpl;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(GameController.class)
@@ -17,6 +17,6 @@ public class GameControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private GameService gameService;
+    private GameServiceImpl gameService;
 
 }

@@ -3,8 +3,8 @@ package com.example.mongoback.controller;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,15 +17,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.example.mongoback.dto.GameDTO;
 import com.example.mongoback.model.Game;
-import com.example.mongoback.service.GameService;
+import com.example.mongoback.service.GameServiceImpl;
 
 @RestController
 @RequestMapping("/")
 public class GameController {
 
     @Autowired
-    private GameService gameService;
+    private GameServiceImpl gameService;
+
+    @Autowired
+    private ModelMapper mapper;
 
     /*
      * GET requests
@@ -33,9 +37,9 @@ public class GameController {
 
     // Get all games
     @GetMapping("/games")
-    public ResponseEntity<List<Game>> getGames() {
+    public ResponseEntity<List<GameDTO>> getGames() {
         try {
-            List<Game> games = gameService.getAllGames();
+            List<GameDTO> games = gameService.getAllGames();
             if (games.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
@@ -48,21 +52,21 @@ public class GameController {
 
     // Get game by id
     @GetMapping("/games/{id}")
-    public ResponseEntity<Game> getGameById(@PathVariable String id) {
-        Optional<Game> game = gameService.getGameById(id);
+    public ResponseEntity<GameDTO> getGameById(@PathVariable String id) {
+        GameDTO game = gameService.getGameById(id);
 
-        if (!game.isPresent()) {
+        if (game == null) {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(game.get());
+        return ResponseEntity.ok(game);
     }
 
     // Get games containing the title provided
     @GetMapping("/games/{title}")
-    public ResponseEntity<List<Game>> getGamesByTitle(@PathVariable String title) {
+    public ResponseEntity<List<GameDTO>> getGamesByTitle(@PathVariable String title) {
         try {
-            List<Game> games = gameService.getGamesbyTitle(title);
+            List<GameDTO> games = gameService.getGamesByTitle(title);
             if (games.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
@@ -79,7 +83,7 @@ public class GameController {
 
     // Create new game
     @PostMapping("/games")
-    public ResponseEntity<Game> createGame(@RequestBody Game game) {
+    public ResponseEntity<Game> createGame(@RequestBody GameDTO game) {
         try {
             Game newGame = gameService.saveGame(game);
 
@@ -98,16 +102,16 @@ public class GameController {
 
     // Update game by id
     @PutMapping("/games/{id}")
-    public ResponseEntity<Game> updateGame(@PathVariable String id, @RequestBody Game gameDetails) {
-        Optional<Game> game = gameService.getGameById(id);
+    public ResponseEntity<GameDTO> updateGame(@PathVariable String id, @RequestBody GameDTO gameDetails) {
+        GameDTO game = gameService.getGameById(id);
 
-        if (!game.isPresent()) {
+        if (game == null) {
             return ResponseEntity.notFound().build();
         }
 
         try {
             Game updatedGame = gameService.saveGame(gameDetails);
-            return ResponseEntity.ok(updatedGame);
+            return ResponseEntity.ok(mapper.map(updatedGame, GameDTO.class));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -120,14 +124,14 @@ public class GameController {
     // Delete game by id
     @DeleteMapping("/games/{id}")
     public ResponseEntity<Map<String, Boolean>> deleteGame(@PathVariable String id) {
-        Optional<Game> game = gameService.getGameById(id);
+        GameDTO game = gameService.getGameById(id);
 
-        if (!game.isPresent()) {
+        if (game == null) {
             return ResponseEntity.notFound().build();
         }
 
         try {
-            gameService.deleteGame(game.get());
+            gameService.deleteGame(game);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();

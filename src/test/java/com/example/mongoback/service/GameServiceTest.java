@@ -14,6 +14,6 @@ public class GameServiceTest {
     private GameRepository gameRepository;
 
     @InjectMocks
-    private GameService gameService;
+    private GameServiceImpl gameService;
 
 }
