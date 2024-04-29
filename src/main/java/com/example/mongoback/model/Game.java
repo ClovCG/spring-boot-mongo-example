@@ -16,6 +16,10 @@ public class Game {
     private String year;
     private List<String> platforms;
 
+    public Game() {
+
+    }
+
     public Game(String title, String developer, String publisher, String year, List<String> platforms) {
         this.title = title;
         this.developer = developer;

@@ -10,6 +10,18 @@ public class GameDTO {
     private String year;
     private List<String> platforms;
 
+    public GameDTO() {
+
+    }
+
+    public GameDTO(String title, String developer, String publisher, String year, List<String> platforms) {
+        this.title = title;
+        this.developer = developer;
+        this.publisher = publisher;
+        this.year = year;
+        this.platforms = platforms;
+    }
+
     public String getTitle() {
         return title;
     }
