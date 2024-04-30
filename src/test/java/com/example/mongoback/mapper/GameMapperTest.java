@@ -53,4 +53,36 @@ public class GameMapperTest {
         assertIterableEquals(gameDto.getPlatforms(), game.getPlatforms());
     }
 
+    @Test
+    public void givenGameWithEmptyProperties_whenMapToGameDTO_thenEquals() {
+        // Given
+        Game game = new Game();
+
+        // When
+        GameDTO gameDto = mapper.map(game, GameDTO.class);
+
+        // Then
+        assertEquals(game.getTitle(), gameDto.getTitle());
+        assertEquals(game.getDeveloper(), gameDto.getDeveloper());
+        assertEquals(game.getPublisher(), gameDto.getPublisher());
+        assertEquals(game.getYear(), gameDto.getYear());
+        assertIterableEquals(game.getPlatforms(), gameDto.getPlatforms());
+    }
+
+    @Test
+    public void givenGameDTOWithEmptyParameters_whenMapToGame_thenEquals() {
+        // Given
+        GameDTO gameDto = new GameDTO();
+
+        // When
+        Game game = mapper.map(gameDto, Game.class);
+
+        // Then
+        assertEquals(gameDto.getTitle(), game.getTitle());
+        assertEquals(gameDto.getDeveloper(), game.getDeveloper());
+        assertEquals(gameDto.getPublisher(), game.getPublisher());
+        assertEquals(gameDto.getYear(), game.getYear());
+        assertIterableEquals(gameDto.getPlatforms(), game.getPlatforms());
+    }
+
 }
