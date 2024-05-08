@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -22,7 +21,6 @@ import com.example.mongoback.model.Game;
 import com.example.mongoback.service.GameServiceImpl;
 
 @RestController
-@RequestMapping("/")
 public class GameController {
 
     @Autowired
@@ -51,7 +49,7 @@ public class GameController {
     }
 
     // Get game by id
-    @GetMapping("/games/{id}")
+    @GetMapping("/game/{id}")
     public ResponseEntity<GameDTO> getGameById(@PathVariable String id) {
         GameDTO game = gameService.getGameById(id);
 
@@ -63,7 +61,7 @@ public class GameController {
     }
 
     // Get games containing the title provided
-    @GetMapping("/games/{title}")
+    @GetMapping("/game/{title}")
     public ResponseEntity<List<GameDTO>> getGamesByTitle(@PathVariable String title) {
         try {
             List<GameDTO> games = gameService.getGamesByTitle(title);
@@ -82,7 +80,7 @@ public class GameController {
      */
 
     // Create new game
-    @PostMapping("/games")
+    @PostMapping("/game")
     public ResponseEntity<Game> createGame(@RequestBody GameDTO game) {
         try {
             Game newGame = gameService.saveGame(game);
@@ -101,7 +99,7 @@ public class GameController {
      */
 
     // Update game by id
-    @PutMapping("/games/{id}")
+    @PutMapping("/game/{id}")
     public ResponseEntity<GameDTO> updateGame(@PathVariable String id, @RequestBody GameDTO gameDetails) {
         GameDTO game = gameService.getGameById(id);
 
@@ -122,7 +120,7 @@ public class GameController {
      */
 
     // Delete game by id
-    @DeleteMapping("/games/{id}")
+    @DeleteMapping("/game/{id}")
     public ResponseEntity<Map<String, Boolean>> deleteGame(@PathVariable String id) {
         GameDTO game = gameService.getGameById(id);
 
