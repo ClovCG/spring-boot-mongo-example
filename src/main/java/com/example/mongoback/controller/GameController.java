@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -33,11 +34,17 @@ public class GameController {
      * GET requests
      */
 
-    // Get all games
+    // Get all games or get games containing the title provided
     @GetMapping("/games")
-    public ResponseEntity<List<GameDTO>> getGames() {
+    public ResponseEntity<List<GameDTO>> getGames(@RequestParam(required = false) String title) {
         try {
-            List<GameDTO> games = gameService.getAllGames();
+            List<GameDTO> games;
+            if (title == null || title == "") {
+                games = gameService.getAllGames();
+            } else {
+                games = gameService.getGamesByTitle(title);
+            }
+
             if (games.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
@@ -60,27 +67,12 @@ public class GameController {
         return ResponseEntity.ok(game);
     }
 
-    // Get games containing the title provided
-    @GetMapping("/game/{title}")
-    public ResponseEntity<List<GameDTO>> getGamesByTitle(@PathVariable String title) {
-        try {
-            List<GameDTO> games = gameService.getGamesByTitle(title);
-            if (games.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-
-            return ResponseEntity.ok(games);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
     /*
      * POST requests
      */
 
     // Create new game
-    @PostMapping("/game")
+    @PostMapping("/games")
     public ResponseEntity<Game> createGame(@RequestBody GameDTO game) {
         try {
             Game newGame = gameService.saveGame(game);
