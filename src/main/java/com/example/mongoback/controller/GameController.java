@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.mongoback.dto.GameDTO;
+import com.example.mongoback.handler.InternalException;
 import com.example.mongoback.model.Game;
 import com.example.mongoback.service.GameServiceImpl;
 
@@ -51,7 +52,7 @@ public class GameController {
 
             return ResponseEntity.ok(games);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new InternalException("There was an error while processing the request.");
         }
     }
 
@@ -72,7 +73,7 @@ public class GameController {
      */
 
     // Create new game
-    @PostMapping("/games")
+    @PostMapping("/game")
     public ResponseEntity<Game> createGame(@RequestBody GameDTO game) {
         try {
             Game newGame = gameService.saveGame(game);
@@ -82,7 +83,7 @@ public class GameController {
 
             return ResponseEntity.created(location).build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new InternalException("There was an error while processing the request.");
         }
     }
 
@@ -103,7 +104,7 @@ public class GameController {
             Game updatedGame = gameService.saveGame(gameDetails);
             return ResponseEntity.ok(mapper.map(updatedGame, GameDTO.class));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new InternalException("There was an error while processing the request.");
         }
     }
 
@@ -124,7 +125,7 @@ public class GameController {
             gameService.deleteGame(game);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            throw new InternalException("There was an error while processing the request.");
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.example.mongoback.controller;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,25 +17,26 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.example.mongoback.dto.GameDTO;
+import com.example.mongoback.handler.InternalException;
+import com.example.mongoback.handler.InternalExceptionHandler;
 import com.example.mongoback.model.Game;
 import com.example.mongoback.service.GameServiceImpl;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 @WebMvcTest(controllers = GameController.class)
+@Import(InternalExceptionHandler.class)
 public class GameControllerTest {
 
         @Autowired
         private MockMvc mockMvc;
-
-        @Autowired
-        private ObjectMapper objectMapper;
 
         @MockBean
         private GameServiceImpl gameService;
@@ -106,6 +108,22 @@ public class GameControllerTest {
         }
 
         @Test
+        public void whenGetGames_thenReturnServerError() throws Exception {
+                // Mocks (set mockMvc so it acts as if an exception is being thrown)
+                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
+                                .setControllerAdvice(new InternalExceptionHandler()).build();
+
+                // When
+                ResultActions response = mockMvc.perform(get("/games").contentType(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+
+                Exception ex = response.andReturn().getResolvedException();
+                // Then
+                response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
+                                .andExpect(status().isInternalServerError());
+        }
+
+        @Test
         public void givenId_whenGetGameById_thenReturnOk() throws Exception {
                 // Given
                 String id = "1";
@@ -127,6 +145,46 @@ public class GameControllerTest {
                                 .andExpect(jsonPath("$.publisher", is(gameDto.getPublisher())))
                                 .andExpect(jsonPath("$.year", is(gameDto.getYear())))
                                 .andExpect(jsonPath("$.platforms.size()", is(gameDto.getPlatforms().size())));
+
+        }
+
+        @Test
+        public void givenGameDTO_whenCreateGame_thenReturnOk() {
+
+        }
+
+        @Test
+        public void givenGameDTO_whenCreateGame_thenReturnServerError() {
+
+        }
+
+        @Test
+        public void givenId_whenUpdateGame_thenReturnOk() {
+
+        }
+
+        @Test
+        public void givenId_whenUpdateGame_thenReturnNotFound() {
+
+        }
+
+        @Test
+        public void givenId_whenUpdateGame_thenReturnServerError() {
+
+        }
+
+        @Test
+        public void givenId_whenDeleteGame_thenReturnNoContent() {
+
+        }
+
+        @Test
+        public void givenId_whenDeleteGame_thenReturnNotFound() {
+
+        }
+
+        @Test
+        public void givenId_whenDeleteGame_thenReturnServerError() {
 
         }
 
