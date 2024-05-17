@@ -2,8 +2,13 @@ package com.example.mongoback.controller;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,25 +17,29 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentMatchers;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver;
 
 import com.example.mongoback.dto.GameDTO;
 import com.example.mongoback.handler.InternalException;
 import com.example.mongoback.handler.InternalExceptionHandler;
 import com.example.mongoback.model.Game;
 import com.example.mongoback.service.GameServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(value = SpringExtension.class)
 @WebMvcTest(controllers = GameController.class)
 @Import(InternalExceptionHandler.class)
 public class GameControllerTest {
@@ -38,11 +47,14 @@ public class GameControllerTest {
         @Autowired
         private MockMvc mockMvc;
 
+        @Autowired
+        private ObjectMapper objectMapper;
+
         @MockBean
         private GameServiceImpl gameService;
 
         @MockBean
-        private ModelMapper mapper;
+        private ModelMapper modelMapper;
 
         @Test
         public void whenGetGames_thenReturnOk() throws Exception {
@@ -63,6 +75,7 @@ public class GameControllerTest {
                 response.andExpect(status().isOk())
                                 .andExpect(jsonPath("$").exists())
                                 .andExpect(jsonPath("$.size()", is(gameDTOs.size())));
+                verify(gameService, times(1)).getAllGames();
         }
 
         @Test
@@ -89,6 +102,7 @@ public class GameControllerTest {
                 response.andExpect(status().isOk())
                                 .andExpect(jsonPath("$").exists())
                                 .andExpect(jsonPath("$.size()", is(gameDTOs.size())));
+                verify(gameService, times(1)).getGamesByTitle(title);
         }
 
         @Test
@@ -105,6 +119,7 @@ public class GameControllerTest {
                 // Then
                 response.andExpect(status().isNoContent())
                                 .andExpect(jsonPath("$").doesNotExist());
+                verify(gameService, times(1)).getAllGames();
         }
 
         @Test
@@ -117,7 +132,6 @@ public class GameControllerTest {
                 ResultActions response = mockMvc.perform(get("/games").contentType(MediaType.APPLICATION_JSON))
                                 .andDo(MockMvcResultHandlers.print());
 
-                Exception ex = response.andReturn().getResolvedException();
                 // Then
                 response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
                                 .andExpect(status().isInternalServerError());
@@ -145,47 +159,197 @@ public class GameControllerTest {
                                 .andExpect(jsonPath("$.publisher", is(gameDto.getPublisher())))
                                 .andExpect(jsonPath("$.year", is(gameDto.getYear())))
                                 .andExpect(jsonPath("$.platforms.size()", is(gameDto.getPlatforms().size())));
+                verify(gameService, times(1)).getGameById(id);
 
         }
 
         @Test
-        public void givenGameDTO_whenCreateGame_thenReturnOk() {
+        public void givenGameDTO_whenCreateGame_thenReturnCreated() throws Exception {
+                // Given
+                String id = "1";
+                GameDTO gameDetails = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                Game savedGame = new Game("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                savedGame.setId(id);
+
+                when(gameService.saveGame(ArgumentMatchers.any())).thenReturn(savedGame);
+
+                // When
+                ResultActions response = mockMvc.perform(post("/game")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(gameDetails))
+                                .accept(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(status().isCreated())
+                                .andExpect(jsonPath("$.id", is(savedGame.getId())))
+                                .andExpect(jsonPath("$.title", is(savedGame.getTitle())))
+                                .andExpect(jsonPath("$.developer", is(savedGame.getDeveloper())))
+                                .andExpect(jsonPath("$.publisher", is(savedGame.getPublisher())))
+                                .andExpect(jsonPath("$.year", is(savedGame.getYear())))
+                                .andExpect(jsonPath("$.platforms.size()", is(savedGame.getPlatforms().size())));
+                verify(gameService, times(1)).saveGame(ArgumentMatchers.any());
+        }
+
+        @Test
+        public void givenGameDTO_whenCreateGame_thenReturnServerError() throws JsonProcessingException, Exception {
+                // Given
+                GameDTO gameDetails = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+
+                // Mocks (set mockMvc so it acts as if an exception is being thrown)
+                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
+                                .setControllerAdvice(new InternalExceptionHandler()).build();
+
+                // When
+                ResultActions response = mockMvc.perform(post("/game")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(gameDetails))
+                                .accept(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
+                                .andExpect(status().isInternalServerError());
+        }
+
+        @Test
+        public void givenIdAndGameDTO_whenUpdateGame_thenReturnOk() throws Exception {
+                // Given
+                String id = "1";
+                GameDTO gameGetDTO = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                GameDTO gameDetails = new GameDTO("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990",
+                                List.of("Platform"));
+                Game savedGame = new Game("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                GameDTO savedGameDTO = new GameDTO("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990",
+                                List.of("Platform"));
+                savedGame.setId(id);
+
+                when(gameService.getGameById(id)).thenReturn(gameGetDTO);
+                when(gameService.saveGame(ArgumentMatchers.any())).thenReturn(savedGame);
+                when(modelMapper.map(savedGame, GameDTO.class)).thenReturn(savedGameDTO);
+
+                // When
+                ResultActions response = mockMvc.perform(put("/game/{id}", id)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(gameDetails))
+                                .accept(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(status().isOk())
+                                .andExpect(jsonPath("$.title", is(savedGame.getTitle())))
+                                .andExpect(jsonPath("$.developer", is(savedGame.getDeveloper())))
+                                .andExpect(jsonPath("$.publisher", is(savedGame.getPublisher())))
+                                .andExpect(jsonPath("$.year", is(savedGame.getYear())))
+                                .andExpect(jsonPath("$.platforms.size()", is(savedGame.getPlatforms().size())));
+                verify(gameService, times(1)).getGameById(id);
+                verify(gameService, times(1)).saveGame(ArgumentMatchers.any());
+        }
+
+        @Test
+        public void givenIdAndGameDTO_whenUpdateGame_thenReturnNotFound() throws Exception {
+                // Given
+                String id = "1";
+                GameDTO gameDetails = new GameDTO("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990",
+                                List.of("Platform"));
+
+                when(gameService.getGameById(id)).thenReturn(null);
+
+                // When
+                ResultActions response = mockMvc.perform(put("/game/{id}", id)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(gameDetails))
+                                .accept(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(status().isNotFound());
+                verify(gameService, times(1)).getGameById(id);
 
         }
 
         @Test
-        public void givenGameDTO_whenCreateGame_thenReturnServerError() {
+        public void givenIdAndGameDTO_whenUpdateGame_thenReturnServerError() throws Exception {
+                // TODO: Figure out the exception mock (gameService is currently null)
+                // Mocks (set mockMvc so it acts as if an exception is being thrown)
+                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
+                                .setControllerAdvice(InternalExceptionHandler.class).build();
 
+                // Given
+                String id = "1";
+                GameDTO gameGetDTO = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                GameDTO gameDetails = new GameDTO("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990",
+                                List.of("Platform"));
+                Game savedGame = new Game("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+
+                when(gameService.getGameById(id)).thenReturn(gameGetDTO);
+                when(gameService.saveGame(gameDetails)).thenReturn(savedGame);
+
+                // When
+                ResultActions response = mockMvc.perform(put("/game/{id}", id)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(gameDetails))
+                                .accept(MediaType.APPLICATION_JSON))
+                                .andDo(MockMvcResultHandlers.print());
+                String responseStr = response.andReturn().getResponse().getContentAsString();
+
+                // Then
+                response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
+                                .andExpect(status().isInternalServerError());
         }
 
         @Test
-        public void givenId_whenUpdateGame_thenReturnOk() {
+        public void givenId_whenDeleteGame_thenReturnNoContent() throws Exception {
+                // Given
+                String id = "1";
+                GameDTO gameGetDTO = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
 
+                when(gameService.getGameById(id)).thenReturn(gameGetDTO);
+
+                // When
+                ResultActions response = mockMvc.perform(delete("/game/{id}", id))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(status().isNoContent());
+                verify(gameService, times(1)).getGameById(id);
+                verify(gameService, times(1)).deleteGame(gameGetDTO);
         }
 
         @Test
-        public void givenId_whenUpdateGame_thenReturnNotFound() {
+        public void givenId_whenDeleteGame_thenReturnNotFound() throws Exception {
+                // Given
+                String id = "1";
 
+                when(gameService.getGameById(id)).thenReturn(null);
+
+                // When
+                ResultActions response = mockMvc.perform(delete("/game/{id}", id))
+                                .andDo(MockMvcResultHandlers.print());
+
+                // Then
+                response.andExpect(status().isNotFound());
+                verify(gameService, times(1)).getGameById(id);
         }
 
         @Test
-        public void givenId_whenUpdateGame_thenReturnServerError() {
+        public void givenId_whenDeleteGame_thenReturnServerError() throws Exception {
+                // TODO: Figure out the exception mock (gameService is currently null)
+                // Mocks (set mockMvc so it acts as if an exception is being thrown)
+                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
+                                .setControllerAdvice(new InternalExceptionHandler())
+                                .setHandlerExceptionResolvers(new ExceptionHandlerExceptionResolver()).build();
 
-        }
+                // Given
+                String id = "1";
 
-        @Test
-        public void givenId_whenDeleteGame_thenReturnNoContent() {
+                // When
+                ResultActions response = mockMvc.perform(delete("/game/{id}", id))
+                                .andDo(MockMvcResultHandlers.print());
 
-        }
-
-        @Test
-        public void givenId_whenDeleteGame_thenReturnNotFound() {
-
-        }
-
-        @Test
-        public void givenId_whenDeleteGame_thenReturnServerError() {
-
+                // Then
+                response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
+                                .andExpect(status().isInternalServerError());
         }
 
 }

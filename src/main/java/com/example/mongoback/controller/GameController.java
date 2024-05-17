@@ -81,7 +81,7 @@ public class GameController {
             URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
                     .buildAndExpand(newGame.getId()).toUri();
 
-            return ResponseEntity.created(location).build();
+            return ResponseEntity.created(location).body(newGame);
         } catch (Exception e) {
             throw new InternalException("There was an error while processing the request.");
         }
