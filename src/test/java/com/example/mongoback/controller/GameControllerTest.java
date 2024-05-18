@@ -2,6 +2,7 @@ package com.example.mongoback.controller;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,8 +29,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver;
 
 import com.example.mongoback.dto.GameDTO;
 import com.example.mongoback.handler.InternalException;
@@ -124,9 +123,8 @@ public class GameControllerTest {
 
         @Test
         public void whenGetGames_thenReturnServerError() throws Exception {
-                // Mocks (set mockMvc so it acts as if an exception is being thrown)
-                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
-                                .setControllerAdvice(new InternalExceptionHandler()).build();
+                String errorMsg = "There was an error while processing the request.";
+                doThrow(new InternalException(errorMsg)).when(gameService).getAllGames();
 
                 // When
                 ResultActions response = mockMvc.perform(get("/games").contentType(MediaType.APPLICATION_JSON))
@@ -194,11 +192,10 @@ public class GameControllerTest {
         @Test
         public void givenGameDTO_whenCreateGame_thenReturnServerError() throws JsonProcessingException, Exception {
                 // Given
+                String errorMsg = "There was an error while processing the request.";
                 GameDTO gameDetails = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
 
-                // Mocks (set mockMvc so it acts as if an exception is being thrown)
-                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
-                                .setControllerAdvice(new InternalExceptionHandler()).build();
+                doThrow(new InternalException(errorMsg)).when(gameService).saveGame(gameDetails);
 
                 // When
                 ResultActions response = mockMvc.perform(post("/game")
@@ -270,20 +267,13 @@ public class GameControllerTest {
 
         @Test
         public void givenIdAndGameDTO_whenUpdateGame_thenReturnServerError() throws Exception {
-                // TODO: Figure out the exception mock (gameService is currently null)
-                // Mocks (set mockMvc so it acts as if an exception is being thrown)
-                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
-                                .setControllerAdvice(InternalExceptionHandler.class).build();
-
                 // Given
                 String id = "1";
-                GameDTO gameGetDTO = new GameDTO("Jump and Go", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
+                String errorMsg = "There was an error while processing the request.";
                 GameDTO gameDetails = new GameDTO("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990",
                                 List.of("Platform"));
-                Game savedGame = new Game("Jump, Go and Shout", "Dev_1", "Publisher_1", "1990", List.of("Platform"));
 
-                when(gameService.getGameById(id)).thenReturn(gameGetDTO);
-                when(gameService.saveGame(gameDetails)).thenReturn(savedGame);
+                doThrow(new InternalException(errorMsg)).when(gameService).getGameById(id);
 
                 // When
                 ResultActions response = mockMvc.perform(put("/game/{id}", id)
@@ -291,7 +281,6 @@ public class GameControllerTest {
                                 .content(objectMapper.writeValueAsString(gameDetails))
                                 .accept(MediaType.APPLICATION_JSON))
                                 .andDo(MockMvcResultHandlers.print());
-                String responseStr = response.andReturn().getResponse().getContentAsString();
 
                 // Then
                 response.andExpect(result -> assertTrue(result.getResolvedException() instanceof InternalException))
@@ -334,14 +323,11 @@ public class GameControllerTest {
 
         @Test
         public void givenId_whenDeleteGame_thenReturnServerError() throws Exception {
-                // TODO: Figure out the exception mock (gameService is currently null)
-                // Mocks (set mockMvc so it acts as if an exception is being thrown)
-                mockMvc = MockMvcBuilders.standaloneSetup(GameController.class)
-                                .setControllerAdvice(new InternalExceptionHandler())
-                                .setHandlerExceptionResolvers(new ExceptionHandlerExceptionResolver()).build();
-
                 // Given
                 String id = "1";
+                String errorMsg = "There was an error while processing the request.";
+
+                doThrow(new InternalException(errorMsg)).when(gameService).getGameById(id);
 
                 // When
                 ResultActions response = mockMvc.perform(delete("/game/{id}", id))
